@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racha de Quinta Pro - Sincronizado em Nuvem (Firebase)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#f97316', 600: '#ea580c', 700: '#c2410c', dark: '#0f172a', card: '#1e293b' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+
+    <!-- HEADER -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-600/30">
+                    <i class="fa-solid fa-futbol text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wide text-white">RACHA DE QUINTA PRO <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 ml-2">☁️ Nuvem Ativa</span></h1>
+                    <p class="text-xs text-slate-400">Sincronizado em Tempo Real (Android, iPhone & PC)</p>
+                </div>
+            </div>
+            <!-- NAVEGAÇÃO DE ABAS -->
+            <nav class="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800 gap-1 overflow-x-auto max-w-full">
+                <button onclick="switchTab('players')" id="btn-players" class="px-3 py-2 text-xs font-semibold rounded-lg transition-all bg-brand-600 text-white shadow flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-id-card"></i> Elenco
+                </button>
+                <button onclick="switchTab('presence')" id="btn-presence" class="px-3 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-clipboard-check"></i> Chamada & Presença
+                </button>
+                <button onclick="switchTab('draw')" id="btn-draw" class="px-3 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-scale-balanced"></i> Sorteio de Times
+                </button>
+                <button onclick="switchTab('evaluation')" id="btn-evaluation" class="px-3 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-pen-to-square"></i> Súmula & Notas
+                </button>
+                <button onclick="switchTab('ranking')" id="btn-ranking" class="px-3 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-pie"></i> Ranking & Gráficos
+                </button>
+                <button onclick="switchTab('whatsapp')" id="btn-whatsapp" class="px-3 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-brands fa-whatsapp"></i> Resumo Zap
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- ABA 1: FICHA DOS CRAQUES -->
+        <section id="tab-players" class="space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="formTitle" class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-brand-500"></i> Cadastro de Atleta (Ficha Técnica)
+                    </h2>
+                    <button id="cancelEditBtn" onclick="window.cancelEdit()" class="hidden text-xs text-amber-400 hover:underline">Cancelar Edição</button>
+                </div>
+                <form id="playerForm" onsubmit="window.savePlayer(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+                    <input type="hidden" id="editingPlayerId" value="">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Nome Completo</label>
+                        <input type="text" id="playerName" required placeholder="Ex: Carlos Alberto" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Apelido (Nome de Guerra)</label>
+                        <input type="text" id="playerNickname" required placeholder="Ex: Carlinhos" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Posição Principal</label>
+                        <select id="playerPosition" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 text-white">
+                            <option value="Goleiro">🧤 Goleiro</option>
+                            <option value="Zagueiro">🛡️ Zagueiro</option>
+                            <option value="Lateral">⬅️ Lateral / Ala</option>
+                            <option value="Meio-Campo">🎯 Meio-Campista / Maestro</option>
+                            <option value="Atacante">⚡ Atacante / Artilheiro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Nota Base de Habilidade (1 a 10)</label>
+                        <input type="number" id="playerSkillBase" min="1" max="10" step="0.5" value="7" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Pé Dominante</label>
+                        <select id="playerFoot" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 text-white">
+                            <option value="Destro">Destro 🦵</option>
+                            <option value="Canhoto">Canhoto 🦶</option>
+                            <option value="Ambidestro">Ambidestro ⭐</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Nº da Camisa</label>
+                        <input type="number" id="playerNumber" min="1" max="99" placeholder="10" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 text-white">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Foto do Atleta (Avatar)</label>
+                        <input type="file" id="playerPhoto" accept="image/*" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer">
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-2">
+                        <button type="submit" id="submitPlayerBtn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> Salvar Craque no Elenco
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-white">Elenco Oficial na Nuvem (<span id="playerCount">0</span>)</h3>
+                    <button onclick="window.clearPlayers()" class="text-xs text-rose-400 hover:text-rose-300 transition-colors"><i class="fa-solid fa-trash-can"></i> Limpar Elenco</button>
+                </div>
+                <div id="playersGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <p class="col-span-full text-center text-xs text-slate-500 py-8">Carregando elenco da nuvem...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: CHAMADA & PRESENÇA POR DATA -->
+        <section id="tab-presence" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-800">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-brand-500"></i> Chamada de Presença (Nuvem)
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Selecione o dia do jogo e marque quem está presente. Sincronizado instantaneamente!</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-slate-400 whitespace-nowrap font-bold">Data do Jogo:</label>
+                        <input type="date" id="selectedGameDate" onchange="window.loadPresenceForDate()" class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500 font-bold">
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-xs text-slate-300">
+                        Presentes confirmados hoje: <strong id="presentCount" class="text-emerald-400 text-sm">0</strong> / <span id="totalElencoCount">0</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.setAllPresence(true)" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl text-slate-300">Marcar Todos</button>
+                        <button onclick="window.setAllPresence(false)" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl text-slate-300">Desmarcar Todos</button>
+                    </div>
+                </div>
+
+                <div id="presenceChecklist" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+                    <!-- Preenchido via JS -->
+                </div>
+
+                <div class="flex justify-end">
+                    <button onclick="window.savePresence()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-6 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Chamada na Nuvem
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 3: SORTEIO DE TIMES COM AJUSTES MANUAIS E QUANTIDADE -->
+        <section id="tab-draw" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-brand-500"></i> Sorteio Equilibrado por Data
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">O sistema sorteia os times com base nos <strong>presentes confirmados</strong> na data selecionada. Defina abaixo o tamanho dos times e faça ajustes manuais se necessário.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-slate-400 whitespace-nowrap font-bold">Data:</label>
+                        <span id="drawDateDisplay" class="text-xs bg-slate-950 px-3 py-2 rounded-xl border border-slate-700 text-amber-400 font-bold">--/--/----</span>
+                    </div>
+                </div>
+
+                <!-- CONFIGURAÇÃO DE QUANTIDADE POR TIME -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 bg-slate-950 rounded-xl border border-slate-800 items-center">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Jogadores por Time (Linha + Goleiro)</label>
+                        <select id="playersPerTeam" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                            <option value="5">5 vs 5 (Futsal / Society Curto)</option>
+                            <option value="6">6 vs 6</option>
+                            <option value="7" selected>7 vs 7 (Society Padrão)</option>
+                            <option value="8">8 vs 8</option>
+                            <option value="11">11 vs 11 (Campo)</option>
+                        </select>
+                    </div>
+                    <div class="text-xs text-slate-300 sm:col-span-2 flex items-center justify-between">
+                        <div>
+                            <span>Total Presentes: <strong id="drawPresentTotal" class="text-white">0</strong></span> | 
+                            <span>Vagas Jogando: <strong id="drawPlayingTotal" class="text-emerald-400">0</strong></span> | 
+                            <span>Ficam de Fora (Espera): <strong id="drawBenchTotal" class="text-amber-400">0</strong></span>
+                        </div>
+                        <button onclick="window.executeSmartDraw()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-dice"></i> Sortear Times Agora
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESULTADO DO SORTEIO COM AJUSTE MANUAL E BANCO -->
+            <div id="drawResultContainer" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- TIME A -->
+                <div class="bg-slate-900 border border-blue-900/50 rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                        <h3 class="text-sm font-extrabold text-blue-400 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved"></i> TIME A (Média: <span id="teamASkill">0</span>)
+                        </h3>
+                        <span id="countTeamA" class="text-xs bg-blue-950 text-blue-300 px-2 py-0.5 rounded-full border border-blue-800">0</span>
+                    </div>
+                    <div id="listTeamA" class="space-y-2 flex-1 overflow-y-auto max-h-96"></div>
+                </div>
+
+                <!-- TIME B -->
+                <div class="bg-slate-900 border border-amber-900/50 rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                        <h3 class="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved"></i> TIME B (Média: <span id="teamBSkill">0</span>)
+                        </h3>
+                        <span id="countTeamB" class="text-xs bg-amber-950 text-amber-300 px-2 py-0.5 rounded-full border border-amber-800">0</span>
+                    </div>
+                    <div id="listTeamB" class="space-y-2 flex-1 overflow-y-auto max-h-96"></div>
+                </div>
+
+                <!-- FICAM DE FORA / ESPERA / BANCO -->
+                <div class="bg-slate-900 border border-rose-900/40 rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                        <h3 class="text-sm font-extrabold text-rose-400 flex items-center gap-2">
+                            <i class="fa-solid fa-chair"></i> Ficam de Fora / Rodízio
+                        </h3>
+                        <span id="countBench" class="text-xs bg-rose-950 text-rose-300 px-2 py-0.5 rounded-full border border-rose-800">0</span>
+                    </div>
+                    <div id="listBench" class="space-y-2 flex-1 overflow-y-auto max-h-96"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 4: SÚMULA & AVALIAÇÃO OBRIGATÓRIA DOS PRESENTES -->
+        <section id="tab-evaluation" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-brand-500"></i> Súmula Oficial (Nuvem)
+                    </h2>
+                    <p class="text-xs text-slate-400">Avaliação oficial de todos os presentes na data selecionada.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="text-xs text-slate-400 whitespace-nowrap font-bold">Data:</label>
+                    <span id="evalDateDisplay" class="text-xs bg-slate-950 px-3 py-2 rounded-xl border border-slate-700 text-emerald-400 font-bold">--/--/----</span>
+                </div>
+            </div>
+
+            <!-- GOL MAIS BONITO DA RODADA -->
+            <div class="bg-slate-900 border border-amber-600/40 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-white uppercase tracking-wider">Puskás do Racha (Gol Mais Bonito)</h4>
+                        <p class="text-[11px] text-slate-400">Selecione o autor da pintura da noite (entre os presentes)</p>
+                    </div>
+                </div>
+                <select id="bestGoalPlayer" class="w-full sm:w-72 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                    <option value="">Nenhum / Não houve</option>
+                </select>
+            </div>
+
+            <div id="evaluationList" class="space-y-4">
+                <!-- Preenchido via JS apenas com os presentes -->
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="window.saveMatchEvaluation()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Súmula na Nuvem
+                </button>
+            </div>
+        </section>
+
+        <!-- ABA 5: RANKING GERAL & GRÁFICOS -->
+        <section id="tab-ranking" class="hidden space-y-6">
+            <!-- DESTAQUE DA RODADA -->
+            <div id="roundHighlightContainer" class="hidden bg-gradient-to-r from-amber-600/20 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 text-3xl font-black shadow-lg shadow-amber-500/30">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">Craque da Última Rodada Avaliada</span>
+                        <h3 id="highlightName" class="text-lg font-extrabold text-white mt-1.5">-</h3>
+                        <p id="highlightStats" class="text-xs text-slate-300">-</p>
+                    </div>
+                </div>
+                <div id="highlightGoal" class="text-right text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800 max-w-xs">
+                    -
+                </div>
+            </div>
+
+            <!-- GRÁFICOS DE DESEMPENHO -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-brand-500"></i> Artilharia do Elenco (Gols)
+                    </h3>
+                    <div class="relative h-64">
+                        <canvas id="goalsChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-amber-500"></i> Médias de Atuação
+                    </h3>
+                    <div class="relative h-64">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELA DE CLASSIFICAÇÃO -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-medal text-amber-400"></i> Tabela Geral de Pontuação & Presenças
+                </h2>
+                <p class="text-xs text-slate-400 mb-6">Pontos calculados com base em gols (3pts), assistências (2pts), atuações, presenças e prêmios na nuvem.</p>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="p-3">Pos</th>
+                                <th class="p-3">Atleta</th>
+                                <th class="p-3 text-center">Presenças 📅</th>
+                                <th class="p-3 text-center">Gols ⚽</th>
+                                <th class="p-3 text-center">Assists 🎯</th>
+                                <th class="p-3 text-center">Cartões 🟨/🟥</th>
+                                <th class="p-3 text-center">Média ⭐</th>
+                                <th class="p-3 text-right">Pts Totais</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTableBody" class="divide-y divide-slate-800/60 text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 6: RESUMO WHATSAPP -->
+        <section id="tab-whatsapp" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-emerald-500"></i> Relatório para o Grupo do WhatsApp
+                </h2>
+                <p class="text-xs text-slate-400 mb-4">Relatório com a data selecionada, presentes, artilheiros e resenha da rodada.</p>
+                
+                <textarea id="whatsappOutput" rows="12" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none mb-4"></textarea>
+                
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="window.copyWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-6 rounded-xl text-xs transition-all shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-copy"></i> Copiar Relatório
+                    </button>
+                    <a id="whatsappShareBtn" href="#" target="_blank" class="bg-emerald-800 hover:bg-emerald-900 text-white font-semibold py-2.5 px-6 rounded-xl text-xs transition-all shadow-md flex items-center gap-2">
+                        <i class="fa-brands fa-whatsapp"></i> Enviar Direto no WhatsApp
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FIREBASE & SCRIPT DO APLICATIVO -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDtBhlvzckWxC0ohJq_tMIDkezBLJIfUkc",
+            authDomain: "futebol-byd.firebaseapp.com",
+            projectId: "futebol-byd",
+            storageBucket: "futebol-byd.firebasestorage.app",
+            messagingSenderId: "786213038751",
+            appId: "1:786213038751:web:a2b56d5c6917ad05f3d0aa",
+            measurementId: "G-G4WC0TML2C"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
+        let players = [];
+        let presenceData = {}; 
+        let evaluations = {}; 
+        let currentDrawTeams = { teamA: [], teamB: [], bench: [] };
+        let goalsChartInstance = null;
+        let skillsChartInstance = null;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('selectedGameDate').value = todayStr;
+
+        // Ouvintes em tempo real do Firestore
+        function initFirestoreListeners() {
+            // Elenco
+            onSnapshot(collection(db, "players"), (snapshot) => {
+                players = [];
+                snapshot.forEach((docSnap) => {
+                    players.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderPlayers();
+                const activeTab = document.querySelector('nav button.bg-brand-650, nav button.bg-brand-600');
+                // atualiza se estiver em telas dependentes
+                const currentDate = document.getElementById('selectedGameDate').value;
+                loadPresenceForDate();
+            });
+
+            // Presença
+            onSnapshot(collection(db, "presence"), (snapshot) => {
+                presenceData = {};
+                snapshot.forEach((docSnap) => {
+                    presenceData[docSnap.id] = docSnap.data().presentIds || [];
+                });
+                loadPresenceForDate();
+            });
+
+            // Súmulas / Avaliações
+            onSnapshot(collection(db, "evaluations"), (snapshot) => {
+                evaluations = {};
+                snapshot.forEach((docSnap) => {
+                    evaluations[docSnap.id] = docSnap.data();
+                });
+                renderRanking();
+                renderRoundHighlight();
+            });
+        }
+
+        function switchTab(tabId) {
+            ['players', 'presence', 'draw', 'evaluation', 'ranking', 'whatsapp'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`btn-${t}`).className = "px-3 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap";
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabId}`).className = "px-3 py-2 text-xs font-semibold rounded-lg transition-all bg-brand-600 text-white shadow flex items-center gap-1.5 whitespace-nowrap";
+            
+            const currentDate = document.getElementById('selectedGameDate').value;
+            if (tabId === 'presence') loadPresenceForDate();
+            if (tabId === 'draw') {
+                document.getElementById('drawDateDisplay').innerText = formatDateBR(currentDate);
+                prepareDrawScreen();
+            }
+            if (tabId === 'evaluation') {
+                document.getElementById('evalDateDisplay').innerText = formatDateBR(currentDate);
+                renderEvaluationForm(currentDate);
+            }
+            if (tabId === 'ranking') {
+                renderRanking();
+                renderCharts();
+                renderRoundHighlight();
+            }
+            if (tabId === 'whatsapp') generateWhatsAppReport();
+        }
+        window.switchTab = switchTab;
+
+        function formatDateBR(dateIso) {
+            if (!dateIso) return '--/--/----';
+            const parts = dateIso.split('-');
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateIso;
+        }
+
+        async function savePlayer(event) {
+            event.preventDefault();
+            const editingId = document.getElementById('editingPlayerId').value;
+            const name = document.getElementById('playerName').value.trim();
+            const nickname = document.getElementById('playerNickname').value.trim();
+            const position = document.getElementById('playerPosition').value;
+            const skillBase = parseFloat(document.getElementById('playerSkillBase').value) || 7;
+            const foot = document.getElementById('playerFoot').value;
+            const number = document.getElementById('playerNumber').value || '10';
+            const fileInput = document.getElementById('playerPhoto').files[0];
+
+            if (!name) return;
+
+            if (fileInput) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    await processPlayerSave(editingId, { name, nickname, position, skillBase, foot, number, photo: e.target.result });
+                };
+                reader.readAsDataURL(fileInput);
+            } else {
+                let existingPhoto = generateDefaultAvatar(nickname);
+                if (editingId) {
+                    const existingP = players.find(p => p.id === editingId);
+                    if (existingP) existingPhoto = existingP.photo;
+                }
+                await processPlayerSave(editingId, { name, nickname, position, skillBase, foot, number, photo: existingPhoto });
+            }
+        }
+        window.savePlayer = savePlayer;
+
+        async function processPlayerSave(editingId, playerObj) {
+            try {
+                const playerId = editingId || Date.now().toString();
+                await setDoc(doc(db, "players", playerId), playerObj);
+                alert(editingId ? 'Atleta atualizado na nuvem!' : 'Atleta cadastrado na nuvem!');
+                cancelEdit();
+            } catch (err) {
+                console.error("Erro ao salvar no Firestore: ", err);
+                alert("Erro ao salvar na nuvem. Verifique sua conexão.");
+            }
+        }
+
+        function editPlayer(id) {
+            const p = players.find(x => x.id === id);
+            if (!p) return;
+
+            document.getElementById('editingPlayerId').value = p.id;
+            document.getElementById('playerName').value = p.name;
+            document.getElementById('playerNickname').value = p.nickname;
+            document.getElementById('playerPosition').value = p.position;
+            document.getElementById('playerSkillBase').value = p.skillBase;
+            document.getElementById('playerFoot').value = p.foot;
+            document.getElementById('playerNumber').value = p.number;
+
+            document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-user-pen text-amber-500"></i> Editar Atleta: <span class="text-amber-400">${p.nickname}</span>`;
+            document.getElementById('submitPlayerBtn').innerHTML = `<i class="fa-solid fa-check"></i> Atualizar Dados do Atleta`;
+            document.getElementById('submitPlayerBtn').className = "w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg flex items-center justify-center gap-2";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.editPlayer = editPlayer;
+
+        function cancelEdit() {
+            document.getElementById('playerForm').reset();
+            document.getElementById('editingPlayerId').value = '';
+            document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-user-plus text-brand-500"></i> Cadastro de Atleta (Ficha Técnica)`;
+            document.getElementById('submitPlayerBtn').innerHTML = `<i class="fa-solid fa-check"></i> Salvar Craque no Elenco`;
+            document.getElementById('submitPlayerBtn').className = "w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2";
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        }
+        window.cancelEdit = cancelEdit;
+
+        function generateDefaultAvatar(name) {
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=ea580c&color=fff&size=150`;
+        }
+
+        function renderPlayers() {
+            const grid = document.getElementById('playersGrid');
+            document.getElementById('playerCount').innerText = players.length;
+            
+            if (players.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-xs text-slate-500 py-8">Nenhum craque cadastrado na nuvem.</p>`;
+                return;
+            }
+
+            grid.innerHTML = players.map(p => `
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col relative group shadow-md justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <img src="${p.photo}" class="w-12 h-12 rounded-full object-cover border-2 border-brand-500 shadow-md">
+                                <div>
+                                    <span class="text-[10px] font-bold text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-full">#${p.number}</span>
+                                    <h4 class="text-xs font-bold text-white mt-1">${p.nickname}</h4>
+                                    <p class="text-[10px] text-slate-400">${p.position}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] text-slate-300 border-t border-slate-900 pt-2 mb-3">
+                            <span>Pé: ${p.foot}</span>
+                            <span class="text-amber-400 font-bold">Nota Base: ${p.skillBase}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-2 border-t border-slate-900">
+                        <button onclick="window.editPlayer('${p.id}')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-amber-400 hover:text-amber-300 py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar
+                        </button>
+                        <button onclick="window.removePlayer('${p.id}')" class="flex-1 bg-slate-900 hover:bg-slate-800 text-rose-500 hover:text-rose-400 py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-trash-can"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function removePlayer(id) {
+            const p = players.find(x => x.id === id);
+            if (confirm(`Deseja realmente excluir ${p ? p.nickname : 'este atleta'} da nuvem?`)) {
+                try {
+                    await deleteDoc(doc(db, "players", id));
+                    alert("Atleta excluído com sucesso.");
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao excluir da nuvem.");
+                }
+            }
+        }
+        window.removePlayer = removePlayer;
+
+        async function clearPlayers() {
+            if (confirm('Deseja realmente apagar todo o elenco da nuvem?')) {
+                try {
+                    for (let p of players) {
+                        await deleteDoc(doc(db, "players", p.id));
+                    }
+                    alert("Elenco limpo com sucesso.");
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao limpar elenco.");
+                }
+            }
+        }
+        window.clearPlayers = clearPlayers;
+
+        function loadPresenceForDate() {
+            const dateStr = document.getElementById('selectedGameDate').value;
+            const container = document.getElementById('presenceChecklist');
+            document.getElementById('totalElencoCount').innerText = players.length;
+
+            if (players.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-xs text-slate-500 py-6">Cadastre jogadores na aba Elenco primeiro.</p>`;
+                document.getElementById('presentCount').innerText = '0';
+                return;
+            }
+
+            if (!presenceData[dateStr]) {
+                presenceData[dateStr] = players.map(p => p.id);
+            }
+            const presentList = presenceData[dateStr];
+
+            container.innerHTML = players.map(p => {
+                const isPresent = presentList.includes(p.id);
+                return `
+                    <label class="flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-900 rounded-xl border ${isPresent ? 'border-emerald-600/60 bg-emerald-950/10' : 'border-slate-800'} cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <img src="${p.photo}" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${p.nickname}</h4>
+                                <span class="text-[10px] text-slate-400">${p.position}</span>
+                            </div>
+                        </div>
+                        <input type="checkbox" value="${p.id}" ${isPresent ? 'checked' : ''} onchange="window.updatePresentCount()" class="presence-checkbox w-5 h-5 accent-emerald-600 rounded cursor-pointer">
+                    </label>
+                `;
+            }).join('');
+
+            updatePresentCount();
+        }
+        window.loadPresenceForDate = loadPresenceForDate;
+
+        function setAllPresence(status) {
+            document.querySelectorAll('.presence-checkbox').forEach(chk => chk.checked = status);
+            updatePresentCount();
+        }
+        window.setAllPresence = setAllPresence;
+
+        function updatePresentCount() {
+            const checkedCount = document.querySelectorAll('.presence-checkbox:checked').length;
+            document.getElementById('presentCount').innerText = checkedCount;
+        }
+        window.updatePresentCount = updatePresentCount;
+
+        async function savePresence() {
+            const dateStr = document.getElementById('selectedGameDate').value;
+            const checkedIds = Array.from(document.querySelectorAll('.presence-checkbox:checked')).map(chk => chk.value);
+            
+            try {
+                await setDoc(doc(db, "presence", dateStr), { presentIds: checkedIds });
+                alert(`Presença salva na nuvem para ${formatDateBR(dateStr)}! (${checkedIds.length} confirmados).`);
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao salvar presença na nuvem.");
+            }
+        }
+        window.savePresence = savePresence;
+
+        function prepareDrawScreen() {
+            const dateStr = document.getElementById('selectedGameDate').value;
+            const presentIds = presenceData[dateStr] || players.map(p => p.id);
+            const presentPlayers = players.filter(p => presentIds.includes(p.id));
+
+            document.getElementById('drawPresentTotal').innerText = presentPlayers.length;
+            
+            if (!currentDrawTeams.teamA.length && !currentDrawTeams.teamB.length) {
+                document.getElementById('drawResultContainer').classList.add('hidden');
+            }
+        }
+
+        function executeSmartDraw() {
+            const dateStr = document.getElementById('selectedGameDate').value;
+            const presentIds = presenceData[dateStr] || players.map(p => p.id);
+            let presentPlayers = players.filter(p => presentIds.includes(p.id));
+
+            if (presentPlayers.length < 2) {
+                alert('É necessário ter pelo menos 2 atletas presentes confirmados na data para sortear.');
+                return;
+            }
+
+            const perTeam = parseInt(document.getElementById('playersPerTeam').value) || 7;
+            const maxPlaying = perTeam * 2;
+
+            presentPlayers.sort((a, b) => b.skillBase - a.skillBase);
+
+            let teamA = [];
+            let teamB = [];
+            let bench = [];
+
+            let playingCount = Math.min(presentPlayers.length, maxPlaying);
+            let titulars = presentPlayers.slice(0, playingCount);
+            bench = presentPlayers.slice(playingCount);
+
+            titulars.forEach((p, idx) => {
+                const round = Math.floor(idx / 2);
+                const isEvenRound = round % 2 === 0;
+                let currentTeam = (idx % 2 === 0) ? (isEvenRound ? 'A' : 'B') : (isEvenRound ? 'B' : 'A');
+
+                if (currentTeam === 'A') teamA.push(p);
+                else teamB.push(p);
+            });
+
+            currentDrawTeams = { teamA, teamB, bench };
+            renderDrawResult();
+        }
+        window.executeSmartDraw = executeSmartDraw;
+
+        function renderDrawResult() {
+            document.getElementById('drawResultContainer').classList.remove('hidden');
+
+            const sumA = currentDrawTeams.teamA.reduce((acc, p) => acc + p.skillBase, 0);
+            const sumB = currentDrawTeams.teamB.reduce((acc, p) => acc + p.skillBase, 0);
+
+            document.getElementById('teamASkill').innerText = (sumA / (currentDrawTeams.teamA.length || 1)).toFixed(1);
+            document.getElementById('teamBSkill').innerText = (sumB / (currentDrawTeams.teamB.length || 1)).toFixed(1);
+            document.getElementById('countTeamA').innerText = `${currentDrawTeams.teamA.length} atletas`;
+            document.getElementById('countTeamB').innerText = `${currentDrawTeams.teamB.length} atletas`;
+            document.getElementById('countBench').innerText = `${currentDrawTeams.bench.length} atletas`;
+
+            document.getElementById('drawPlayingTotal').innerText = currentDrawTeams.teamA.length + currentDrawTeams.teamB.length;
+            document.getElementById('drawBenchTotal').innerText = currentDrawTeams.bench.length;
+
+            document.getElementById('listTeamA').innerHTML = currentDrawTeams.teamA.map(p => renderMovablePlayerCard(p.id, 'A')).join('');
+            document.getElementById('listTeamB').innerHTML = currentDrawTeams.teamB.map(p => renderMovablePlayerCard(p.id, 'B')).join('');
+            document.getElementById('listBench').innerHTML = currentDrawTeams.bench.length ? currentDrawTeams.bench.map(p => renderMovablePlayerCard(p.id, 'bench')).join('') : `<p class="text-xs text-slate-500 text-center py-4">Nenhum jogador de fora.</p>`;
+        }
+
+        function renderMovablePlayerCard(playerId, currentTeam) {
+            const p = players.find(x => x.id === playerId);
+            if (!p) return '';
+            return `
+                <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs gap-2">
+                    <div class="flex items-center gap-2 truncate">
+                        <img src="${p.photo}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
+                        <div class="truncate">
+                            <span class="font-bold text-white block truncate">${p.nickname}</span>
+                            <span class="text-[10px] text-amber-400">Nota: ${p.skillBase}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        ${currentTeam !== 'A' ? `<button onclick="window.movePlayer('${p.id}', '${currentTeam}', 'A')" title="Mover para A" class="bg-blue-950 hover:bg-blue-900 text-blue-300 px-2 py-1 rounded text-[10px]"><i class="fa-solid fa-arrow-left"></i> A</button>` : ''}
+                        ${currentTeam !== 'B' ? `<button onclick="window.movePlayer('${p.id}', '${currentTeam}', 'B')" title="Mover para B" class="bg-amber-950 hover:bg-amber-900 text-amber-300 px-2 py-1 rounded text-[10px]">B <i class="fa-solid fa-arrow-right"></i></button>` : ''}
+                        ${currentTeam !== 'bench' ? `<button onclick="window.movePlayer('${p.id}', '${currentTeam}', 'bench')" title="Mover para Fora" class="bg-rose-950 hover:bg-rose-900 text-rose-300 px-2 py-1 rounded text-[10px]">Fora</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function movePlayer(playerId, fromTeam, toTeam) {
+            const p = players.find(x => x.id === playerId);
+            if (!p) return;
+
+            currentDrawTeams[fromTeam === 'A' ? 'teamA' : fromTeam === 'B' ? 'teamB' : 'bench'] = currentDrawTeams[fromTeam === 'A' ? 'teamA' : fromTeam === 'B' ? 'teamB' : 'bench'].filter(x => x.id !== playerId);
+            currentDrawTeams[toTeam === 'A' ? 'teamA' : toTeam === 'B' ? 'teamB' : 'bench'].push(p);
+
+            renderDrawResult();
+        }
+        window.movePlayer = movePlayer;
+
+        function renderEvaluationForm(dateStr) {
+            const container = document.getElementById('evaluationList');
+            const presentIds = presenceData[dateStr] || players.map(p => p.id);
+            const presentPlayers = players.filter(p => presentIds.includes(p.id));
+
+            if (presentPlayers.length === 0) {
+                container.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-xs">Nenhum atleta marcado como presente nesta data.</div>`;
+                document.getElementById('bestGoalPlayer').innerHTML = `<option value="">Nenhum</option>`;
+                return;
+            }
+
+            const savedMatch = evaluations[dateStr] || { bestGoalPlayerId: '', evaluations: [] };
+
+            document.getElementById('bestGoalPlayer').innerHTML = `<option value="">Nenhum / Não houve</option>` + presentPlayers.map(p => `<option value="${p.id}" ${savedMatch.bestGoalPlayerId === p.id ? 'selected' : ''}>${p.nickname} (${p.name})</option>`).join('');
+
+            container.innerHTML = presentPlayers.map(p => {
+                const existingEval = savedMatch.evaluations.find(e => e.playerId === p.id) || { skill: p.skillBase, goals: 0, assists: 0, cardType: 'none' };
+                return `
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 player-eval-card" data-id="${p.id}">
+                        <div class="flex items-center gap-3 w-full md:w-1/4">
+                            <img src="${p.photo}" class="w-12 h-12 rounded-full object-cover border border-emerald-500">
+                            <div>
+                                <h4 class="text-sm font-bold text-white">${p.nickname}</h4>
+                                <span class="text-[10px] text-emerald-400 font-semibold">Presente Confirmado</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-3/4">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Nota Atuação (0-10)</label>
+                                <input type="number" min="0" max="10" step="0.5" value="${existingEval.skill}" class="eval-skill w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-brand-500 font-bold">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Gols ⚽</label>
+                                <input type="number" min="0" value="${existingEval.goals}" class="eval-goals w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Assistências 🎯</label>
+                                <input type="number" min="0" value="${existingEval.assists}" class="eval-assists w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Cartão 🟨/🟥</label>
+                                <select class="eval-card w-full bg-slate-950 border border-slate-700 rounded-lg px-1 py-1.5 text-xs text-center text-white focus:outline-none focus:border-brand-500">
+                                    <option value="none" ${existingEval.cardType === 'none' ? 'selected' : ''}>Nenhum</option>
+                                    <option value="yellow" ${existingEval.cardType === 'yellow' ? 'selected' : ''}>🟨 Amarelo</option>
+                                    <option value="red" ${existingEval.cardType === 'red' ? 'selected' : ''}>🟥 Vermelho</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function saveMatchEvaluation() {
+            const dateStr = document.getElementById('selectedGameDate').value;
+            const bestGoalPlayerId = document.getElementById('bestGoalPlayer').value;
+            const cards = document.querySelectorAll('.player-eval-card');
+            
+            if (cards.length === 0) {
+                alert('Nenhum atleta presente para salvar súmula.');
+                return;
+            }
+
+            const matchData = {
+                date: dateStr,
+                bestGoalPlayerId: bestGoalPlayerId,
+                evaluations: []
+            };
+
+            cards.forEach(card => {
+                const playerId = card.getAttribute('data-id');
+                const skill = parseFloat(card.querySelector('.eval-skill').value) || 0;
+                const goals = parseInt(card.querySelector('.eval-goals').value) || 0;
+                const assists = parseInt(card.querySelector('.eval-assists').value) || 0;
+                const cardType = card.querySelector('.eval-card').value;
+
+                matchData.evaluations.push({ playerId, skill, goals, assists, cardType });
+            });
+
+            try {
+                await setDoc(doc(db, "evaluations", dateStr), matchData);
+                alert(`Súmula oficial da data ${formatDateBR(dateStr)} salva na nuvem!`);
+                switchTab('ranking');
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao salvar súmula na nuvem.");
+            }
+        }
+        window.saveMatchEvaluation = saveMatchEvaluation;
+
+        function getAggregatedStats() {
+            const stats = {};
+            players.forEach(p => {
+                stats[p.id] = { id: p.id, nickname: p.nickname, photo: p.photo, presences: 0, goals: 0, assists: 0, yellow: 0, red: 0, skillSum: 0, evaluatedMatches: 0 };
+            });
+
+            Object.values(presenceData).forEach(presentIds => {
+                if (Array.isArray(presentIds)) {
+                    presentIds.forEach(id => {
+                        if (stats[id]) stats[id].presences += 1;
+                    });
+                }
+            });
+
+            Object.values(evaluations).forEach(m => {
+                if (m && m.evaluations) {
+                    m.evaluations.forEach(e => {
+                        if (stats[e.playerId]) {
+                            stats[e.playerId].goals += e.goals;
+                            stats[e.playerId].assists += e.assists;
+                            stats[e.playerId].skillSum += e.skill;
+                            stats[e.playerId].evaluatedMatches += 1;
+                            if (e.cardType === 'yellow') stats[e.playerId].yellow += 1;
+                            if (e.cardType === 'red') stats[e.playerId].red += 1;
+                        }
+                    });
+                }
+            });
+
+            return Object.values(stats).map(s => {
+                const avgSkill = s.evaluatedMatches > 0 ? (s.skillSum / s.evaluatedMatches) : 0;
+                const totalPoints = (s.presences * 2) + (s.goals * 3) + (s.assists * 2) + (avgSkill * 1.5) - (s.yellow * 1) - (s.red * 3);
+                return { ...s, avgSkill, totalPoints };
+            }).sort((a, b) => b.totalPoints - a.totalPoints);
+        }
+
+        function renderRanking() {
+            const rankingList = getAggregatedStats();
+            const tbody = document.getElementById('rankingTableBody');
+            
+            if (rankingList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-xs text-slate-500 py-6">Nenhum dado registrado ainda.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rankingList.map((r, index) => `
+                <tr class="hover:bg-slate-900/50 transition-colors">
+                    <td class="p-3 font-bold text-slate-400">#${index + 1}</td>
+                    <td class="p-3 flex items-center gap-3">
+                        <img src="${r.photo}" class="w-8 h-8 rounded-full object-cover border border-slate-700">
+                        <span class="font-bold text-white">${r.nickname}</span>
+                    </td>
+                    <td class="p-3 text-center font-semibold text-emerald-400">${r.presences}</td>
+                    <td class="p-3 text-center font-semibold text-amber-400">${r.goals}</td>
+                    <td class="p-3 text-center font-semibold text-blue-400">${r.assists}</td>
+                    <td class="p-3 text-center text-slate-300">
+                        <span class="text-amber-400 font-bold">${r.yellow}🟨</span> / <span class="text-rose-500 font-bold">${r.red}🟥</span>
+                    </td>
+                    <td class="p-3 text-center text-slate-300">${r.avgSkill.toFixed(1)}</td>
+                    <td class="p-3 text-right font-extrabold text-brand-500">${r.totalPoints.toFixed(1)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderRoundHighlight() {
+            const container = document.getElementById('roundHighlightContainer');
+            const evalKeys = Object.keys(evaluations).sort();
+            if (evalKeys.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            const lastDate = evalKeys[evalKeys.length - 1];
+            const lastMatch = evaluations[lastDate];
+            if (!lastMatch || !lastMatch.evaluations || lastMatch.evaluations.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            let topEval = lastMatch.evaluations.reduce((prev, current) => (current.skill > prev.skill) ? current : prev, lastMatch.evaluations[0]);
+            if (!topEval) return;
+
+            const player = players.find(p => p.id === topEval.playerId);
+            if (!player) return;
+
+            container.classList.remove('hidden');
+            document.getElementById('highlightName').innerText = `${player.nickname} (${formatDateBR(lastDate)})`;
+            document.getElementById('highlightStats').innerText = `Atuação nota ${topEval.skill.toFixed(1)} • ${topEval.goals} Gol(s) • ${topEval.assists} Assistência(s)`;
+
+            const goalDiv = document.getElementById('highlightGoal');
+            if (lastMatch.bestGoalPlayerId) {
+                const goalPlayer = players.find(p => p.id === lastMatch.bestGoalPlayerId);
+                goalDiv.innerHTML = `<span class="block text-amber-400 font-bold mb-1"><i class="fa-solid fa-award"></i> Puskás da Data:</span> ${goalPlayer ? goalPlayer.nickname : '-'}`;
+            } else {
+                goalDiv.innerHTML = `<span class="text-slate-500">Gol mais bonito não eleito nesta data.</span>`;
+            }
+        }
+
+        function renderCharts() {
+            const ranking = getAggregatedStats();
+            const topNames = ranking.slice(0, 5).map(r => r.nickname);
+            const topGoals = ranking.slice(0, 5).map(r => r.goals);
+            const topSkills = ranking.slice(0, 5).map(r => r.avgSkill);
+
+            const ctxGoals = document.getElementById('goalsChart').getContext('2d');
+            if (goalsChartInstance) goalsChartInstance.destroy();
+            goalsChartInstance = new Chart(ctxGoals, {
+                type: 'bar',
+                data: {
+                    labels: topNames,
+                    datasets: [{
+                        label: 'Gols',
+                        data: topGoals,
+                        backgroundColor: '#f97316',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+
+            const ctxSkills = document.getElementById('skillsChart').getContext('2d');
+            if (skillsChartInstance) skillsChartInstance.destroy();
+            skillsChartInstance = new Chart(ctxSkills, {
+                type: 'line',
+                data: {
+                    labels: topNames,
+                    datasets: [{
+                        label: 'Nota Média',
+                        data: topSkills,
+                        borderColor: '#eab308',
+                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#eab308'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' }, min: 0, max: 10 },
+                        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function generateWhatsAppReport() {
+            const dateStr = document.getElementById('selectedGameDate').value;
+            const match = evaluations[dateStr];
+            const presentIds = presenceData[dateStr] || [];
+
+            let text = `⚽ *RESUMO DO RACHA DE QUINTA* ⚽\n📅 Data: ${formatDateBR(dateStr)}\n\n`;
+            text += `👥 *Presentes Confirmados (${presentIds.length}):*\n`;
+            presentIds.forEach(id => {
+                const p = players.find(x => x.id === id);
+                if (p) text += `• ${p.nickname}\n`;
+            });
+
+            if (match && match.evaluations) {
+                text += `\n🏆 *Puskás (Gol Mais Bonito):* `;
+                if (match.bestGoalPlayerId) {
+                    const gp = players.find(x => x.id === match.bestGoalPlayerId);
+                    text += `${gp ? gp.nickname : '-'}\n\n`;
+                } else {
+                    text += `Não eleito\n\n`;
+                }
+
+                text += `🔥 *DESTAQUES DA SÚMULA:*\n`;
+                match.evaluations.forEach(e => {
+                    const p = players.find(x => x.id === e.playerId);
+                    if (p) {
+                        let statsArr = [];
+                        if (e.goals > 0) statsArr.push(`${e.goals} ⚽`);
+                        if (e.assists > 0) statsArr.push(`${e.assists} 🎯`);
+                        if (e.cardType === 'yellow') statsArr.push(`🟨`);
+                        if (e.cardType === 'red') statsArr.push(`🟥`);
+                        
+                        if (statsArr.length > 0 || e.skill >= 8) {
+                            text += `• ${p.nickname}: ${statsArr.join(' | ') || 'Boa atuação'} (Nota ${e.skill})\n`;
+                        }
+                    }
+                });
+            } else {
+                text += `\n_Súmula ainda não cadastrada para esta data._\n`;
+            }
+
+            text += `\n📊 *Sistema Racha de Quinta Pro*`;
+
+            document.getElementById('whatsappOutput').value = text;
+            const encoded = encodeURIComponent(text);
+            document.getElementById('whatsappShareBtn').href = `https://api.whatsapp.com/send?text=${encoded}`;
+        }
+
+        function copyWhatsApp() {
+            const textarea = document.getElementById('whatsappOutput');
+            textarea.select();
+            document.execCommand('copy');
+            alert('Relatório copiado para a área de transferência!');
+        }
+        window.copyWhatsApp = copyWhatsApp;
+
+        // Iniciar ouvintes do Firestore
+        initFirestoreListeners();
+    </script>
+</body>
+</html>
